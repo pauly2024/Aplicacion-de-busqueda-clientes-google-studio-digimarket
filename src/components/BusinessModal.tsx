@@ -290,7 +290,7 @@ export function BusinessModal({
 
       // 3. Importar lead en Caso 3 (CRM WhatsApp)
       console.log('[Crear Web] Paso 3: Importando lead al CRM WhatsApp...');
-      const crmRes = await fetch(`${caso3Url}/api/crm/leads/import`, {
+      const crmRes = await fetch(`${caso3Url}/api/crm/leads`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
