@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const GEOAPIFY_API_KEY = 'a8b11066ecdd44c59d834fef15280d99';
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -9,60 +11,59 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Debes proporcionar una consulta de búsqueda' }, { status: 400 });
     }
 
-    // Nominatim (OpenStreetMap) - GRATIS, sin API key, sin billing
-    const nominatimUrl = 'https://nominatim.openstreetmap.org/search';
+    // Geoapify Places API
+    const geoapifyUrl = 'https://api.geoapify.com/v2/places';
     const params = new URLSearchParams({
-      q: query,
-      format: 'json',
+      text: query,
+      apiKey: GEOAPIFY_API_KEY,
       limit: '20',
-      addressdetails: '1',
-      extratags: '1',
-      namedetails: '1',
-      'accept-language': languageCode || 'es',
-      countrycodes: regionCode?.toLowerCase() || 'do',
+      lang: languageCode || 'es',
+      filter: regionCode ? `countrycode:${regionCode.toLowerCase()}` : '',
     });
 
-    const res = await fetch(`${nominatimUrl}?${params}`, {
+    const res = await fetch(`${geoapifyUrl}?${params}`, {
       headers: {
-        'User-Agent': 'DigiMarket-Radar/1.0 (contacto@digimarketrd.com)',
         'Accept': 'application/json',
       },
     });
 
     if (!res.ok) {
-      return NextResponse.json({ error: `Error ${res.status} en Nominatim` }, { status: res.status });
+      return NextResponse.json({ error: `Error ${res.status} en Geoapify` }, { status: res.status });
     }
 
     const data = await res.json();
 
-    // Mapear resultados de Nominatim al formato que espera el frontend
-    const places = (data || []).map((item: any) => ({
-      id: `osm-${item.place_id}`,
-      displayName: { text: item.display_name?.split(',')[0] || 'Sin nombre' },
-      formattedAddress: item.display_name || '',
-      location: {
-        latitude: parseFloat(item.lat),
-        longitude: parseFloat(item.lon),
-      },
-      nationalPhoneNumber: item.extratags?.phone || null,
-      internationalPhoneNumber: item.extratags?.phone || null,
-      websiteUri: item.extratags?.website || item.extratags?.contact_website || null,
-      rating: null,
-      userRatingCount: null,
-      primaryTypeDisplayName: { text: item.class || item.type || 'Negocio' },
-      types: item.class ? [item.class] : [],
-      googleMapsUri: `https://www.openstreetmap.org/?mlat=${item.lat}&mlon=${item.lon}#map=18/${item.lat}/${item.lon}`,
-      businessStatus: 'OPERATIONAL',
-    }));
+    // Mapear resultados de Geoapify al formato que espera el frontend
+    const places = (data.features || []).map((feature: any) => {
+      const props = feature.properties;
+      return {
+        id: `geoapify-${props.place_id || feature.id || Math.random()}`,
+        displayName: { text: props.name || 'Sin nombre' },
+        formattedAddress: props.formatted || '',
+        location: {
+          latitude: props.lat,
+          longitude: props.lon,
+        },
+        nationalPhoneNumber: props.phone || null,
+        internationalPhoneNumber: props.phone || null,
+        websiteUri: props.website || null,
+        rating: null,
+        userRatingCount: null,
+        primaryTypeDisplayName: { text: props.categories?.[0]?.split('.').pop() || 'Negocio' },
+        types: props.categories || [],
+        googleMapsUri: `https://www.openstreetmap.org/?mlat=${props.lat}&mlon=${props.lon}#map=18/${props.lat}/${props.lon}`,
+        businessStatus: 'OPERATIONAL',
+      };
+    });
 
     return NextResponse.json({
       places,
       nextPageToken: null,
     });
   } catch (err: any) {
-    console.error('Error en /api/places (Nominatim):', err);
+    console.error('Error en /api/places (Geoapify):', err);
     return NextResponse.json(
-      { error: err.message || 'Error inesperado al conectar con Nominatim' },
+      { error: err.message || 'Error inesperado al conectar con Geoapify' },
       { status: 500 }
     );
   }
