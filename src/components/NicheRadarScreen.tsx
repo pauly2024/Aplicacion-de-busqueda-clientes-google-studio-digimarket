@@ -17,8 +17,10 @@ import {
   Plus,
   X,
   Flame,
+  Copy,
+  FileText,
 } from 'lucide-react';
-import { AppSettings, NicheScanResult } from '@/types';
+import { AppSettings, NicheScanResult, PresentationPrompt } from '@/types';
 import { checkHasOwnWebsite } from '@/utils/opportunity';
 import { Storage } from '@/utils/storage';
 
@@ -61,6 +63,50 @@ export function NicheRadarScreen({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [results, setResults] = useState<NicheScanResult[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
+
+  // Renderiza template con datos del negocio y vendedor
+  const renderPrompt = (template: string, business: any) => {
+    const seller = settings.sellerProfile;
+    const services = (seller.servicesOffered || []).join('\n- ');
+    return template
+      .replace(/\{\{displayName\}\}/g, business.displayName || '')
+      .replace(/\{\{primaryTypeDisplayName\}\}/g, business.primaryTypeDisplayName || '')
+      .replace(/\{\{formattedAddress\}\}/g, business.formattedAddress || '')
+      .replace(/\{\{nationalPhoneNumber\}\}/g, business.nationalPhoneNumber || '')
+      .replace(/\{\{rating\}\}/g, business.rating?.toString() || 'N/A')
+      .replace(/\{\{userRatingCount\}\}/g, business.userRatingCount?.toString() || '0')
+      .replace(/\{\{hasOwnWebsite\}\}/g, business.hasOwnWebsite ? 'Sí' : 'No')
+      .replace(/\{\{websiteUri\}\}/g, business.websiteUri || 'No tiene')
+      .replace(/\{\{sellerProfile\.name\}\}/g, seller.name || '')
+      .replace(/\{\{sellerProfile\.companyName\}\}/g, seller.companyName || '')
+      .replace(/\{\{sellerProfile\.phone\}\}/g, seller.phone || '')
+      .replace(/\{\{sellerProfile\.website\}\}/g, seller.website || '')
+      .replace(/\{\{sellerProfile\.valueProposition\}\}/g, seller.valueProposition || '')
+      .replace(/\{\{sellerProfile\.servicesOffered\}\}/g, services)
+      .replace(/\{\{sellerProfile\.tone\}\}/g, seller.tone || '')
+      .replace(/\{\{#each sellerProfile\.servicesOffered\}\}([\s\S]*?)\{\{\/each\}\}/g, (_, content) => {
+        return (seller.servicesOffered || []).map((s: string) => content.replace(/\{\{this\}\}/g, s)).join('\n');
+      })
+      .replace(/\{\{#if hasOwnWebsite\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g, (_, ifTrue, ifFalse) => {
+        return business.hasOwnWebsite ? ifTrue : ifFalse;
+      });
+  };
+
+  const handleCopyPrompt = async (prompt: PresentationPrompt, business: any) => {
+    const rendered = renderPrompt(prompt.template, business);
+    await navigator.clipboard.writeText(rendered);
+    setCopiedPromptId(prompt.id);
+    setTimeout(() => setCopiedPromptId(null), 2000);
+  };
+
+  const getFirstVideoPrompt = () => {
+    return settings.presentationPrompts?.find((p) => p.type === 'video') || settings.presentationPrompts?.[0];
+  };
+
+  const getFirstPptPrompt = () => {
+    return settings.presentationPrompts?.find((p) => p.type === 'ppt') || settings.presentationPrompts?.[0];
+  };
 
   const handleAddCategory = () => {
     if (!newCatInput.trim()) return;
@@ -421,15 +467,64 @@ export function NicheRadarScreen({
                   </div>
                 </div>
 
-                <div className="pt-4 mt-4 border-t border-slate-800">
-                  <button
-                    onClick={() => onExploreNiche(zone, item.category)}
-                    className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow"
-                  >
-                    <span>Ver Negocios de este Nicho</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+<div className="pt-4 mt-4 border-t border-slate-800 flex flex-col gap-2">
+                    <button
+                      onClick={() => onExploreNiche(zone, item.category)}
+                      className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow"
+                    >
+                      <span>Ver Negocios de este Nicho</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                    {(() => {
+                      const videoPrompt = getFirstVideoPrompt();
+                      const pptPrompt = getFirstPptPrompt();
+                      if (!videoPrompt && !pptPrompt) return null;
+                      return (
+                        <div className="flex gap-2">
+                          {videoPrompt && (
+                            <button
+                              onClick={() => handleCopyPrompt(videoPrompt, item)}
+                              disabled={copiedPromptId === videoPrompt.id}
+                              className="flex-1 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 text-xs font-bold transition flex items-center justify-center gap-1 border border-purple-500/30"
+                              title="Copiar prompt video"
+                            >
+                              {copiedPromptId === videoPrompt.id ? (
+                                <>
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>¡Copiado!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5" />
+                                  <span>🎬 Video</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                          {pptPrompt && pptPrompt !== videoPrompt && (
+                            <button
+                              onClick={() => handleCopyPrompt(pptPrompt, item)}
+                              disabled={copiedPromptId === pptPrompt.id}
+                              className="flex-1 py-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 text-xs font-bold transition flex items-center justify-center gap-1 border border-blue-500/30"
+                              title="Copiar prompt PPT"
+                            >
+                              {copiedPromptId === pptPrompt.id ? (
+                                <>
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>¡Copiado!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <FileText className="w-3.5 h-3.5" />
+                                  <span>📊 PPT</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
               </div>
             ))}
           </div>
@@ -464,12 +559,43 @@ export function NicheRadarScreen({
                       <td className="p-4 font-bold text-white">{res.averageRating || '-'} ★</td>
                       <td className="p-4">{res.averageReviews} opiniones</td>
                       <td className="p-4 text-right">
-                        <button
-                          onClick={() => onExploreNiche(zone, res.category)}
-                          className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition"
-                        >
-                          Ver Negocios
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => onExploreNiche(zone, res.category)}
+                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition"
+                          >
+                            Ver Negocios
+                          </button>
+                          {(() => {
+                            const videoPrompt = getFirstVideoPrompt();
+                            const pptPrompt = getFirstPptPrompt();
+                            if (!videoPrompt && !pptPrompt) return null;
+                            return (
+                              <div className="flex gap-1">
+                                {videoPrompt && (
+                                  <button
+                                    onClick={() => handleCopyPrompt(videoPrompt, res)}
+                                    disabled={copiedPromptId === videoPrompt.id}
+                                    className="p-1.5 rounded bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 transition border border-purple-500/30"
+                                    title="Copiar prompt video"
+                                  >
+                                    {copiedPromptId === videoPrompt.id ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                  </button>
+                                )}
+                                {pptPrompt && pptPrompt !== videoPrompt && (
+                                  <button
+                                    onClick={() => handleCopyPrompt(pptPrompt, res)}
+                                    disabled={copiedPromptId === pptPrompt.id}
+                                    className="p-1.5 rounded bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 transition border border-blue-500/30"
+                                    title="Copiar prompt PPT"
+                                  >
+                                    {copiedPromptId === pptPrompt.id ? <CheckCircle className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </td>
                     </tr>
                   ))}

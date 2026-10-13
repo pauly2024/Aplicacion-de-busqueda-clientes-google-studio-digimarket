@@ -343,7 +343,7 @@ export function BusinessModal({
         }),
       });
 
-      let propuestaData = null;
+      let propuestaData: { slides: any[]; notebookPrompt: string } | null = null as { slides: any[]; notebookPrompt: string } | null;
       if (propuestaRes.ok) {
         const propuestaResult = await propuestaRes.json();
         console.log('[Crear Web] Propuesta generada:', propuestaResult);
@@ -361,14 +361,14 @@ export function BusinessModal({
         ...lead,
         status: 'Contactado',
         siteUrl,
-        notes: `${notes}\n\n[Auto] Web creada: ${siteUrl} | CRM activado: ${new Date().toLocaleString()}${propuestaData ? ' | Propuesta generada: ' + JSON.stringify(propuestaData.slides?.length || 0) + ' slides' : ''}`,
+        notes: `${notes}\n\n[Auto] Web creada: ${siteUrl} | CRM activado: ${new Date().toLocaleString()}${propuestaData ? ' | Propuesta generada: ' + JSON.stringify((propuestaData.slides?.length || 0)) + ' slides' : ''}`,
         updatedAt: new Date().toISOString(),
       };
       onUpdateLead(updatedLead);
 
       // Mostrar resultado completo con propuesta
       const propuestaMsg = propuestaData
-        ? `\n📊 Propuesta: ${propuestaData.slides?.length || 8} diapositivas generadas\n📋 Prompt NotebookLM listo para copiar`
+        ? `\n📊 Propuesta: ${(propuestaData.slides?.length ?? 8)} diapositivas generadas\n📋 Prompt NotebookLM listo para copiar`
         : '';
 
       alert(`✅ ¡Flujo Completo Ejecutado!\n\n🌐 Sitio web: ${siteUrl}\n📱 CRM WhatsApp: Lead importado y conversación creada\n📦 Paquete: ${packageInfo.service}${propuestaMsg}\n\nEl CRM enviará el primer mensaje por WhatsApp automáticamente.\nLa propuesta está lista para enviar por WhatsApp/Email.`);
@@ -388,6 +388,9 @@ export function BusinessModal({
     if (val >= 50) return 'text-amber-400 bg-amber-500/10 border-amber-500/30';
     return 'text-rose-400 bg-rose-500/10 border-rose-500/30';
   };
+
+  const pd = propuestaData!;
+  const slide6Content = (pd.slides[6] as { content?: string } | undefined)?.content || '';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
@@ -989,7 +992,7 @@ export function BusinessModal({
                       <div className="text-slate-300 text-xs mt-1 whitespace-pre-wrap">{slide.content}</div>
                       {slide.bulletPoints && slide.bulletPoints.length > 0 && (
                         <div className="mt-2 space-y-1">
-                          {slide.bulletPoints.map((bp, bi) => (
+                          {slide.bulletPoints.map((bp: string, bi: number) => (
                             <div key={bi} className="text-slate-400 text-xs flex items-start gap-1.5">
                               <span className="text-orange-400">•</span>
                               <span>{bp}</span>
@@ -1031,11 +1034,12 @@ export function BusinessModal({
 
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-2 pt-2">
+                  const slide6Content = pd.slides[6]?.content || '';
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(
                         propuestaData.slides
-                          .map((s, i) => `${i + 1}. ${s.title}\n${s.content}\n${s.bulletPoints?.map(b => `  • ${b}`).join('\n') || ''}`)
+                          .map((s: { title: string; content: string; bulletPoints?: string[] }, i: number) => `${i + 1}. ${s.title}\n${s.content}\n${s.bulletPoints?.map((b: string) => `  • ${b}`).join('\n') || ''}`)
                           .join('\n\n')
                       );
                       setCopiedKey('slides');
@@ -1072,8 +1076,8 @@ export function BusinessModal({
                       </>
                     )}
                   </button>
-                  <a
-                    href={`https://wa.me/${(lead.internationalPhoneNumber || lead.nationalPhoneNumber).replace(/\D/g, '')}?text=${encodeURIComponent(propuestaData.slides[6]?.content || '')}`}
+                    <a
+                    href={`https://wa.me/${((lead.internationalPhoneNumber || lead.nationalPhoneNumber) || '').replace(/\D/g, '')}?text=${encodeURIComponent(slide6Content)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="px-4 py-2 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 font-bold text-xs transition flex items-center gap-1.5"

@@ -22,6 +22,112 @@ export const DEFAULT_SETTINGS: AppSettings = {
     ],
     tone: 'consultivo',
   },
+  presentationPrompts: [
+    {
+      id: 'video-default',
+      name: 'Video Presentación Negocio (HyperFrames)',
+      description: 'Genera video 30-60s para Reels/TikTok con datos del negocio',
+      type: 'video',
+      template: `# PROMPT PARA VIDEO PRESENTACIÓN - COPIA Y PEGA EN COLAB/JUPYTER
+
+## Contexto del Negocio
+- **Nombre:** {{displayName}}
+- **Categoría:** {{primaryTypeDisplayName}}
+- **Ubicación:** {{formattedAddress}}
+- **Teléfono:** {{nationalPhoneNumber}}
+- **Rating:** {{rating}}★ ({{userRatingCount}} reseñas)
+- **Web propia:** {{#if hasOwnWebsite}}Sí{{else}}No{{/if}}
+- **Sitio web:** {{websiteUri}}
+
+## NUESTRA PROPUESTA (DigiMarket RD)
+{{sellerProfile.valueProposition}}
+
+## SERVICIOS A OFRECER
+{{#each sellerProfile.servicesOffered}}
+- {{this}}
+{{/each}}
+
+## INSTRUCCIONES PARA EL VIDEO
+Crea un video de 30-60 segundos (formato vertical 9:16) usando HyperFrames que:
+1. **Hook (0-3s):** Problema del negocio sin web propia / web antigua
+2. **Solución (3-15s):** Nuestra propuesta de valor + servicios
+3. **Prueba social (15-30s):** Rating, reseñas, ubicación privilegiada
+4. **CTA (30-60s):** "Agenda tu demo gratis por WhatsApp" + teléfono
+
+Tono: {{sellerProfile.tone}}
+Música: Energética, profesional
+Estilo: Moderno, limpio, con animaciones de texto
+
+## OUTPUT
+- Video MP4 1080x1920
+- Subtítulos automáticos
+- Marca de agua DigiMarket RD`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: 'ppt-default',
+      name: 'PPT Presentación Comercial (Reveal.js / python-pptx)',
+      description: 'Genera presentación 8-10 slides para reunión con cliente',
+      type: 'ppt',
+      template: `# PROMPT PARA PPT PRESENTACIÓN COMERCIAL - COPIA Y PEGA EN COLAB/JUPYTER
+
+## DATOS DEL PROSPECTO
+- **Empresa:** {{displayName}}
+- **Rubro:** {{primaryTypeDisplayName}}
+- **Dirección:** {{formattedAddress}}
+- **Teléfono:** {{nationalPhoneNumber}}
+- **Rating Google:** {{rating}}★ ({{userRatingCount}} opiniones)
+- **¿Tiene web propia?** {{#if hasOwnWebsite}}Sí{{else}}No{{/if}}
+- **Web actual:** {{websiteUri || 'No tiene'}}
+
+## ESTRUCTURA DE LA PRESENTACIÓN (8-10 SLIDES)
+
+### Slide 1: Portada
+- Título: "Oportunidad Digital para {{displayName}}"
+- Subtítulo: "Análisis de presencia online + Propuesta DigiMarket RD"
+- Footer: {{sellerProfile.companyName}} | {{sellerProfile.name}} | {{sellerProfile.phone}}
+
+### Slide 2: Diagnóstico Actual
+- Captura de Google Maps / Fotos del negocio
+- Rating: {{rating}}★ | {{userRatingCount}} reseñas
+- {{#if hasOwnWebsite}}Tiene web pero...{{else}}❌ SIN WEB PROPIA{{/if}}
+- Problemas detectados: (lista automática)
+
+### Slide 3: Oportunidad de Mercado
+- {{userRatingCount}} clientes opinan → demanda real
+- Competencia local sin web optimizada
+- Zona: {{formattedAddress}} (alto tráfico)
+
+### Slide 4: Nuestra Solución
+{{#each sellerProfile.servicesOffered}}
+✅ {{this}}
+{{/each}}
+
+### Slide 5: Casos de Éxito / Metodología
+- Web en 7 días | IA WhatsApp 24/7 | Citas online
+- Metodología: Diagnóstico → Diseño → Lanzamiento → Optimización
+
+### Slide 6: Inversión y Paquetes
+- Básico: $X | Pro: $Y | Premium: $Z
+- Incluye: Hosting, SSL, Dominio, Mantenimiento 3 meses
+
+### Slide 7: Próximos Pasos
+1. Demo gratis esta semana
+2. Firma contrato → 50% inicio
+3. Entrega en 7 días hábiles
+
+### Slide 8: Cierre + Contacto
+- WhatsApp: {{sellerProfile.phone}}
+- Web: {{sellerProfile.website}}
+- "¿Empezamos hoy?"
+
+## TONO: {{sellerProfile.tone}}
+## OUTPUT: Archivo .pptx o HTML (Reveal.js) listo para presentar`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ],
 };
 
 const LEADS_KEY = 'digimarket_radar_leads';
@@ -80,6 +186,7 @@ export const Storage = {
           ...DEFAULT_SETTINGS.sellerProfile,
           ...(parsed.sellerProfile || {}),
         },
+        presentationPrompts: parsed.presentationPrompts || DEFAULT_SETTINGS.presentationPrompts,
       };
     } catch (e) {
       console.error('Error al leer settings:', e);

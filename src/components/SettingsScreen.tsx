@@ -12,9 +12,17 @@ import {
   AlertTriangle,
   RotateCcw,
   Sparkles,
+  FileText,
+  Copy,
+  Plus,
+  Trash,
+  Film,
+  Presentation,
 } from 'lucide-react';
-import { AppSettings } from '@/types';
+import { AppSettings, PresentationPrompt } from '@/types';
 import { Storage } from '@/utils/storage';
+
+const PH_PLACEHOLDER = 'Escribe el prompt aqui... Variables: {{displayName}}, {{primaryTypeDisplayName}}, {{formattedAddress}}, {{nationalPhoneNumber}}, {{rating}}, {{userRatingCount}}, {{hasOwnWebsite}}, {{websiteUri}}, {{sellerProfile.name}}, {{sellerProfile.companyName}}, {{sellerProfile.phone}}, {{sellerProfile.website}}, {{sellerProfile.valueProposition}}, {{sellerProfile.servicesOffered}}, {{sellerProfile.tone}}';
 
 interface SettingsScreenProps {
   settings: AppSettings;
@@ -25,6 +33,69 @@ export function SettingsScreen({ settings, onSaveSettings }: SettingsScreenProps
   const [formData, setFormData] = useState<AppSettings>(settings);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [cacheCleared, setCacheCleared] = useState(false);
+  const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
+  const [editingPrompt, setEditingPrompt] = useState<Partial<PresentationPrompt>>({});
+  const [showPromptModal, setShowPromptModal] = useState(false);
+
+  const handleAddPrompt = () => {
+    setEditingPrompt({
+      name: '',
+      description: '',
+      template: '',
+      type: 'video',
+    });
+    setEditingPromptId(null);
+    setShowPromptModal(true);
+  };
+
+  const handleEditPrompt = (prompt: PresentationPrompt) => {
+    setEditingPrompt({
+      name: prompt.name,
+      description: prompt.description,
+      template: prompt.template,
+      type: prompt.type,
+    });
+    setEditingPromptId(prompt.id);
+    setShowPromptModal(true);
+  };
+
+  const handleDeletePrompt = (id: string) => {
+    if (!confirm('¿Eliminar este prompt?')) return;
+    const updatedPrompts = formData.presentationPrompts.filter((p) => p.id !== id);
+    setFormData({ ...formData, presentationPrompts: updatedPrompts });
+  };
+
+  const handleSavePrompt = () => {
+    if (!editingPrompt.name || !editingPrompt.template) {
+      alert('Nombre y template son requeridos');
+      return;
+    }
+    const now = new Date().toISOString();
+    let updatedPrompts: PresentationPrompt[];
+    if (editingPromptId) {
+      updatedPrompts = formData.presentationPrompts.map((p) =>
+        p.id === editingPromptId
+          ? { ...p, ...editingPrompt, updatedAt: now } as PresentationPrompt
+          : p
+      );
+    } else {
+      const newPrompt: PresentationPrompt = {
+        id: `prompt-${Date.now()}`,
+        ...editingPrompt,
+        createdAt: now,
+        updatedAt: now,
+      } as PresentationPrompt;
+      updatedPrompts = [...formData.presentationPrompts, newPrompt];
+    }
+    setFormData({ ...formData, presentationPrompts: updatedPrompts });
+    setShowPromptModal(false);
+    setEditingPromptId(null);
+    setEditingPrompt({});
+  };
+
+  const handlePromptChange = (field: keyof PresentationPrompt, value: string) => {
+    setEditingPrompt({ ...editingPrompt, [field]: value });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -315,6 +386,147 @@ Posicionamiento y Optimización Local"
             <span>{cacheCleared ? 'Caché Vaciada' : 'Limpiar Caché'}</span>
           </button>
         </div>
+
+        {/* Card: Prompts de Presentación */}
+        <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-4">
+          <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
+            <FileText className="w-5 h-5 text-purple-400" />
+            <h2 className="text-base font-bold text-white">Prompts de Presentación (Video / PPT)</h2>
+          </div>
+
+          <p className="text-xs text-slate-400">
+            Templates para generar videos (HyperFrames) o presentaciones (PPT/Reveal.js) en Colab/Jupyter con datos del negocio.
+          </p>
+
+          <div className="space-y-3">
+            {formData.presentationPrompts.map((prompt) => (
+              <div key={prompt.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      prompt.type === 'video' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {prompt.type === 'video' ? '🎬 Video' : '📊 PPT'}
+                    </span>
+                    <span className="font-bold text-white text-sm truncate">{prompt.name}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate">{prompt.description}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleEditPrompt(prompt)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Editar</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeletePrompt(prompt.id)}
+                    className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 text-xs font-bold transition flex items-center gap-1"
+                  >
+                    <Trash className="w-3.5 h-3.5" />
+                    <span>Eliminar</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddPrompt}
+            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-600 text-black font-extrabold text-xs transition flex items-center justify-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Nuevo Prompt</span>
+          </button>
+        </div>
+
+        {/* Modal Nuevo/Editar Prompt */}
+        {showPromptModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-[#0f172a] border border-slate-700 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-white text-lg">
+                  {editingPromptId ? 'Editar Prompt' : 'Nuevo Prompt'}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => { setShowPromptModal(false); setEditingPromptId(null); setEditingPrompt({}); }}
+                  className="text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Nombre</label>
+                  <input
+                    type="text"
+                    value={editingPrompt.name || ''}
+                    onChange={(e) => handlePromptChange('name', e.target.value)}
+                    placeholder="Ej: Video Reels Negocio Local"
+                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Descripción</label>
+                  <input
+                    type="text"
+                    value={editingPrompt.description || ''}
+                    onChange={(e) => handlePromptChange('description', e.target.value)}
+                    placeholder="Ej: Genera video 30s para Reels con datos del negocio"
+                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Tipo</label>
+                  <select
+                    value={editingPrompt.type || 'video'}
+                    onChange={(e) => handlePromptChange('type', e.target.value)}
+                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-semibold focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="video">🎬 Video (HyperFrames)</option>
+                    <option value="ppt">📊 Presentación (PPT/Reveal.js)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Template (usa variables: displayName, rating, sellerProfile.name, etc.)</label>
+                  <textarea
+                    rows={12}
+                    value={editingPrompt.template || ''}
+                    onChange={(e) => handlePromptChange('template', e.target.value)}
+                    placeholder={PH_PLACEHOLDER}
+                    className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-[11px] resize-none focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => { setShowPromptModal(false); setEditingPromptId(null); setEditingPrompt({}); }}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSavePrompt}
+                  className="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-600 text-black text-xs font-extrabold transition shadow"
+                >
+                  Guardar Prompt
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Submit Button */}
         <div className="flex items-center justify-between pt-2">

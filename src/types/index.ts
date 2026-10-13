@@ -89,6 +89,16 @@ export interface SellerProfile {
   tone: 'cercano' | 'consultivo' | 'directo';
 }
 
+export interface PresentationPrompt {
+  id: string;
+  name: string;
+  description: string;
+  template: string;
+  type: 'video' | 'ppt';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppSettings {
   googleMapsApiKey: string;
   nvidiaApiKey: string;
@@ -97,6 +107,7 @@ export interface AppSettings {
   placesQuotaLimit: number;
   defaultRegion: string;
   sellerProfile: SellerProfile;
+  presentationPrompts: PresentationPrompt[];
 }
 
 export interface NicheScanResult {

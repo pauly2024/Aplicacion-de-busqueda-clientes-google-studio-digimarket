@@ -116,7 +116,7 @@ export async function POST(request: Request) {
       .replace(/{oportunidadScore}/g, String(oportunidadScore))
       .replace(/{sitioWeb}/g, sitioWeb || "Sin sitio web propio")
       .replace(/{siteUrl}/g, siteUrl || "Pendiente")
-      .replace(/{problemas}/g, problemas.map((p, i) => `${i + 1}. ${p}`).join("\n"))
+      .replace(/{problemas}/g, problemas.map((p: string, i: number) => `${i + 1}. ${p}`).join("\n"))
       .replace(/{paqueteNombre}/g, paquetePrincipal.nombre)
       .replace(/{paquetePrecio}/g, paquetePrincipal.precio)
       .replace(/{paqueteServicios}/g, paquetePrincipal.servicios.join(", "))
@@ -155,14 +155,14 @@ export async function POST(request: Request) {
         type: "problems",
         title: `Problemas Críticos Detectados`,
         content: `Análisis técnico + comercial revela ${problemas.length} brechas que frenan crecimiento:`,
-        bulletPoints: problemas.slice(0, 6).map((p, i) => `${i + 1}. ${p}`),
+        bulletPoints: problemas.slice(0, 6).map((p: string, i: number) => `${i + 1}. ${p}`),
       },
       {
         type: "solution",
         title: `Solución: ${paquetePrincipal.nombre}`,
         content: `Inversión: ${paquetePrincipal.precio}\n${paquetePrincipal.razon}`,
         bulletPoints: [
-          ...paquetePrincipal.servicios.map(s => `✅ ${s}`),
+          ...paquetePrincipal.servicios.map((s: string) => `✅ ${s}`),
           `💡 ROI estimado: 3-5x en 90 días`,
           `🚀 Implementación: ${timeline?.split("|")[0] || "2-3 semanas"}`,
         ],
