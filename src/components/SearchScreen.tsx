@@ -287,7 +287,7 @@ export function SearchScreen({
                 rating: lead.rating,
                 userRatingCount: lead.userRatingCount,
                 sellerProfile: settings.sellerProfile,
-                apiKey: settings.geminiApiKey || undefined,
+                apiKey: settings.nvidiaApiKey || undefined,
                 pageSpeedScores: pageSpeedData,
               }),
             });
@@ -621,7 +621,7 @@ export function SearchScreen({
           <div className="flex items-center justify-between font-bold">
             <div className="flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-              <span>Analizando webs de 2 en 2 con PageSpeed y Gemini...</span>
+              <span>Analizando webs de 2 en 2 con PageSpeed y NVIDIA NIM...</span>
             </div>
             <span>
               {batchProgress.current} de {batchProgress.total} completados

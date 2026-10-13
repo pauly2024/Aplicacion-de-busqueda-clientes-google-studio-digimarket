@@ -163,23 +163,23 @@ export function NicheRadarScreen({
       }
     }
 
-    // Ahora enviamos a Gemini para ranking y recomendación de los top 3
-    try {
-      const geminiRes = await fetch('/api/radar-niche', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          zone,
-          scanResults: scanList,
-          apiKey: settings.geminiApiKey || undefined,
-        }),
-      });
+// Ahora enviamos a OpenRouter (Nemotron 3 Ultra) para ranking y recomendación de los top 3
+      try {
+        const nicheRes = await fetch('/api/radar-niche', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            zone,
+            scanResults: scanList,
+            apiKey: settings.openRouterApiKey || undefined,
+          }),
+        });
 
-      if (geminiRes.ok) {
-        const geminiData = await geminiRes.json();
-        const rankings: any[] = geminiData.rankings || [];
+      if (nicheRes.ok) {
+        const nicheData = await nicheRes.json();
+        const rankings: any[] = nicheData.rankings || [];
 
-        // Mezclamos el veredicto de Gemini con los resultados
+        // Mezclamos el veredicto de Nemotron con los resultados
         const combined = scanList.map((item) => {
           const v = rankings.find(
             (r) => r.category?.toLowerCase() === item.category.toLowerCase()
@@ -197,7 +197,7 @@ export function NicheRadarScreen({
           };
         });
 
-        // Ordenamos por rango de Gemini
+        // Ordenamos por rango de Nemotron
         combined.sort((a, b) => {
           const rankA = a.geminiVerdict?.rank ?? 99;
           const rankB = b.geminiVerdict?.rank ?? 99;
@@ -208,8 +208,8 @@ export function NicheRadarScreen({
       } else {
         setResults(scanList);
       }
-    } catch (gErr) {
-      console.warn('Error en ranking de nichos:', gErr);
+    } catch (nErr) {
+      console.warn('Error en ranking de nichos:', nErr);
       setResults(scanList);
     } finally {
       setScanning(false);
@@ -374,13 +374,13 @@ export function NicheRadarScreen({
         </div>
       )}
 
-      {/* Top 3 Gemini Recommendations Podium */}
+      {/* Top 3 Nemotron Recommendations Podium */}
       {results.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Award className="w-5 h-5 text-amber-400" />
             <h2 className="text-lg font-black text-white tracking-tight">
-              Recomendación Estratégica de Gemini AI: Top 3 Nichos con Mayor Potencial
+              Recomendación Estratégica de Nemotron 3 Ultra: Top 3 Nichos con Mayor Potencial
             </h2>
           </div>
 

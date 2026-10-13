@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Radar de Clientes | DigiMarket RD',
   description:
-    'Aplicación de prospección inteligente B2B y auditoría de presencia digital para negocios locales con Google Places, PageSpeed y Gemini AI.',
+    'Aplicación de prospección inteligente B2B y auditoría de presencia digital para negocios locales con Google Places, PageSpeed, NVIDIA NIM y Nemotron 3 Ultra.',
 };
 
 export default function RootLayout({

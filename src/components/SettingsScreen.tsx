@@ -65,13 +65,13 @@ export function SettingsScreen({ settings, onSaveSettings }: SettingsScreenProps
         <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl space-y-4">
           <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
             <Key className="w-5 h-5 text-orange-400" />
-            <h2 className="text-base font-bold text-white">Claves de Google Cloud & Gemini</h2>
+            <h2 className="text-base font-bold text-white">Claves de API (Google Cloud, NVIDIA NIM, OpenRouter)</h2>
           </div>
 
           <div className="grid grid-cols-1 gap-4 text-xs">
             <div>
               <label className="block text-slate-300 font-bold mb-1">
-                Google Cloud API Key (Places API New & PageSpeed)
+                Google Cloud API Key (Places API New & PageSpeed Insights)
               </label>
               <input
                 type="password"
@@ -81,23 +81,39 @@ export function SettingsScreen({ settings, onSaveSettings }: SettingsScreenProps
                 className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-orange-500"
               />
               <span className="text-[11px] text-slate-500 mt-1 block">
-                Se almacena de forma segura en este navegador. Nunca se expone públicamente.
+                Se usa para Places API (buscar negocios) y PageSpeed Insights (auditar webs). Se almacena solo en este navegador.
               </span>
             </div>
 
             <div>
               <label className="block text-slate-300 font-bold mb-1">
-                Gemini API Key (Google AI Studio)
+                NVIDIA NIM API Key (analyze-web: Llama 3.1 8B)
               </label>
               <input
                 type="password"
-                value={formData.geminiApiKey}
-                onChange={(e) => setFormData({ ...formData, geminiApiKey: e.target.value })}
-                placeholder="AIzaSy... (Dejar vacío para usar la clave de entorno por defecto)"
+                value={formData.nvidiaApiKey || ''}
+                onChange={(e) => setFormData({ ...formData, nvidiaApiKey: e.target.value })}
+                placeholder="nvapi-... (Dejar vacío para usar la clave de entorno NVIDIA_API_KEY)"
                 className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-orange-500"
               />
               <span className="text-[11px] text-slate-500 mt-1 block">
-                Utilizada por Gemini Flash para analizar el sitio web y redactar los borradores comerciales.
+                Se usa para analizar la web del negocio y generar el diagnóstico + borradores con IA.
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-bold mb-1">
+                OpenRouter API Key (radar-niche: Nemotron 3 Ultra gratis)
+              </label>
+              <input
+                type="password"
+                value={formData.openRouterApiKey || ''}
+                onChange={(e) => setFormData({ ...formData, openRouterApiKey: e.target.value })}
+                placeholder="sk-or-v1-... (Dejar vacío para usar la clave de entorno OPENROUTER_API_KEY)"
+                className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono focus:outline-none focus:border-orange-500"
+              />
+              <span className="text-[11px] text-slate-500 mt-1 block">
+                Se usa para el ranking estratégico de nichos en el Radar de Nichos.
               </span>
             </div>
           </div>
@@ -193,6 +209,31 @@ export function SettingsScreen({ settings, onSaveSettings }: SettingsScreenProps
                 placeholder="Qué problema resuelves y cómo aumentas las ventas de los clientes..."
                 className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white resize-none focus:outline-none focus:border-orange-500"
               />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-slate-300 font-bold mb-1">
+                Servicios que Ofreces (uno por línea)
+              </label>
+              <textarea
+                rows={5}
+                value={(formData.sellerProfile.servicesOffered || []).join('\n')}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    sellerProfile: {
+                      ...formData.sellerProfile,
+                      servicesOffered: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean),
+                    },
+                  })
+                }
+                placeholder="Páginas Web Modernas y Rápidas
+Agente de IA para WhatsApp 24/7
+Sistema de Citas y Reservas Online
+Posicionamiento y Optimización Local"
+                className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white resize-none focus:outline-none focus:border-orange-500 font-mono text-xs"
+              />
+              <span className="text-[10px] text-slate-500 mt-1 block">Un servicio por línea. Se usan en los borradores y propuestas.</span>
             </div>
           </div>
         </div>

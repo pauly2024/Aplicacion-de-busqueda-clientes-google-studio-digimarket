@@ -56,6 +56,11 @@ export function BusinessModal({
   const [creatingWebAndCRM, setCreatingWebAndCRM] = useState(false);
   const [createWebError, setCreateWebError] = useState<string | null>(null);
   const [createdSiteUrl, setCreatedSiteUrl] = useState<string | null>(null);
+  const [propuestaData, setPropuestaData] = useState<{
+    slides: any[];
+    notebookPrompt: string;
+  } | null>(null);
+  const [showPropuesta, setShowPropuesta] = useState(false);
 
   // Notas y próxima acción editables
   const [notes, setNotes] = useState(lead.notes || '');
@@ -216,7 +221,7 @@ export function BusinessModal({
     }
   };
 
-  // Crear Web en Caso 2 + Activar CRM en Caso 3
+  // Crear Web en Caso 2 + Activar CRM en Caso 3 + Generar Propuesta Caso 4
   const handleCreateWebAndCRM = async () => {
     if (!lead.analysis?.recommendedService) {
       setCreateWebError('Primero analiza la web para obtener el paquete recomendado');
@@ -237,7 +242,7 @@ export function BusinessModal({
       const caso2Url = process.env.NEXT_PUBLIC_CASO2_API_URL || 'https://caso2-web-taller.pages.dev';
       const caso3Url = process.env.NEXT_PUBLIC_CASO3_API_URL || 'https://caso3-crm-whatsapp.vercel.app';
 
-      // 1. Generar sitio en Caso 2 (Astro + Cloudflare Pages)
+      // 1. Generar sitio en Caso 2 (Astro + Vercel)
       console.log('[Crear Web] Paso 1: Generando configuración del sitio...');
       const genRes = await fetch(`${caso2Url}/api/web/generate`, {
         method: 'POST',
@@ -265,8 +270,8 @@ export function BusinessModal({
       const genData = await genRes.json();
       console.log('[Crear Web] Configuración generada:', genData.config);
 
-      // 2. Deploy en Cloudflare Pages
-      console.log('[Crear Web] Paso 2: Desplegando en Cloudflare Pages...');
+      // 2. Deploy en Vercel
+      console.log('[Crear Web] Paso 2: Desplegando en Vercel...');
       const deployRes = await fetch(`${caso2Url}/api/web/deploy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -310,17 +315,63 @@ export function BusinessModal({
       const crmData = await crmRes.json();
       console.log('[Crear Web] Lead importado a CRM:', crmData);
 
-      // Actualizar lead local con el estado y URL del sitio
+      // 4. Generar Propuesta en Caso 4 (NotebookLM / Slides)
+      console.log('[Crear Web] Paso 4: Generando propuesta comercial (Caso 4)...');
+      const propuestaRes = await fetch('/api/propuesta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          negocio: lead.displayName,
+          categoria: lead.primaryTypeDisplayName,
+          direccion: lead.formattedAddress,
+          telefono: lead.internationalPhoneNumber || lead.nationalPhoneNumber,
+          email: lead.analysis?.emails?.[0],
+          sitioWeb: lead.websiteUri,
+          siteUrl,
+          rating: lead.rating,
+          reviews: lead.userRatingCount,
+          oportunidadScore: lead.opportunityScore,
+          problemas: lead.analysis?.problems || [],
+          paquetesRecomendados: [{
+            nombre: packageInfo.service,
+            precio: packageInfo.priceRange,
+            servicios: packageInfo.services || [],
+            razon: packageInfo.reason,
+          }],
+          timeline: "Fase 1: Web + IA WhatsApp (Sem 1-2) | Fase 2: Citas + CRM (Sem 3) | Fase 3: SEO + Ads (Mes 2)",
+          contactoWhatsApp: lead.internationalPhoneNumber || lead.nationalPhoneNumber,
+        }),
+      });
+
+      let propuestaData = null;
+      if (propuestaRes.ok) {
+        const propuestaResult = await propuestaRes.json();
+        console.log('[Crear Web] Propuesta generada:', propuestaResult);
+        setPropuestaData({
+          slides: propuestaResult.slides || [],
+          notebookPrompt: propuestaResult.notebookPrompt || '',
+        });
+        setShowPropuesta(true);
+      } else {
+        console.warn('[Crear Web] Error generando propuesta (no bloqueante):', await propuestaRes.text());
+      }
+
+      // Actualizar lead local con el estado, URL del sitio y datos de propuesta
       const updatedLead: BusinessLead = {
         ...lead,
         status: 'Contactado',
         siteUrl,
-        notes: `${notes}\n\n[Auto] Web creada: ${siteUrl} | CRM activado: ${new Date().toLocaleString()}`,
+        notes: `${notes}\n\n[Auto] Web creada: ${siteUrl} | CRM activado: ${new Date().toLocaleString()}${propuestaData ? ' | Propuesta generada: ' + JSON.stringify(propuestaData.slides?.length || 0) + ' slides' : ''}`,
         updatedAt: new Date().toISOString(),
       };
       onUpdateLead(updatedLead);
 
-      alert(`✅ ¡Completado!\n\n🌐 Sitio web: ${siteUrl}\n📱 CRM WhatsApp: Lead importado y conversación creada\n📦 Paquete: ${packageInfo.service}\n\nEl CRM enviará el primer mensaje por WhatsApp automáticamente.`);
+      // Mostrar resultado completo con propuesta
+      const propuestaMsg = propuestaData
+        ? `\n📊 Propuesta: ${propuestaData.slides?.length || 8} diapositivas generadas\n📋 Prompt NotebookLM listo para copiar`
+        : '';
+
+      alert(`✅ ¡Flujo Completo Ejecutado!\n\n🌐 Sitio web: ${siteUrl}\n📱 CRM WhatsApp: Lead importado y conversación creada\n📦 Paquete: ${packageInfo.service}${propuestaMsg}\n\nEl CRM enviará el primer mensaje por WhatsApp automáticamente.\nLa propuesta está lista para enviar por WhatsApp/Email.`);
     } catch (err: any) {
       console.error('[Crear Web] Error:', err);
       setCreateWebError(err.message || 'Error inesperado al crear web y activar CRM');
@@ -900,6 +951,141 @@ export function BusinessModal({
             </div>
           </div>
         </div>
+
+        {/* Section: Propuesta Comercial (Caso 4) */}
+        {(showPropuesta || propuestaData) && (
+          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <FileText className="w-4 h-4 text-emerald-400" />
+                <span>Propuesta Comercial Generada (Caso 4)</span>
+              </h3>
+              <button
+                onClick={() => setShowPropuesta(!showPropuesta)}
+                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+                title={showPropuesta ? 'Ocultar propuesta' : 'Ver propuesta'}
+              >
+                <span className="text-xs">{showPropuesta ? '▲' : '▼'}</span>
+              </button>
+            </div>
+
+            {showPropuesta && propuestaData && (
+              <div className="space-y-4">
+                {/* Slides Preview */}
+                <div className="space-y-3">
+                  <div className="text-xs font-bold text-slate-400">Diapositivas (8):</div>
+                  {propuestaData.slides.map((slide, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-orange-500/30 transition"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-[10px] font-bold text-orange-400 bg-orange-500/20 px-2 py-0.5 rounded">
+                          {slide.type?.toUpperCase() || `SLIDE ${idx + 1}`}
+                        </span>
+                        <span className="text-[10px] text-slate-500">#{idx + 1}/8</span>
+                      </div>
+                      <div className="font-bold text-white mt-1">{slide.title}</div>
+                      <div className="text-slate-300 text-xs mt-1 whitespace-pre-wrap">{slide.content}</div>
+                      {slide.bulletPoints && slide.bulletPoints.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {slide.bulletPoints.map((bp, bi) => (
+                            <div key={bi} className="text-slate-400 text-xs flex items-start gap-1.5">
+                              <span className="text-orange-400">•</span>
+                              <span>{bp}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* NotebookLM Prompt */}
+                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold text-slate-400">Prompt para NotebookLM:</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(propuestaData.notebookPrompt);
+                        setCopiedKey('notebooklm');
+                        setTimeout(() => setCopiedKey(null), 2500);
+                      }}
+                      className="p-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 hover:text-orange-300 transition text-xs font-bold"
+                    >
+                      {copiedKey === 'notebooklm' ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                      <span className="ml-1 hidden sm:inline">Copiar Prompt</span>
+                    </button>
+                  </div>
+                  <textarea
+                    readOnly
+                    rows={12}
+                    value={propuestaData.notebookPrompt}
+                    className="w-full p-3 rounded-lg bg-black/50 border border-slate-700 text-slate-300 text-[10px] font-mono leading-relaxed resize-none"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        propuestaData.slides
+                          .map((s, i) => `${i + 1}. ${s.title}\n${s.content}\n${s.bulletPoints?.map(b => `  • ${b}`).join('\n') || ''}`)
+                          .join('\n\n')
+                      );
+                      setCopiedKey('slides');
+                      setTimeout(() => setCopiedKey(null), 2500);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 font-bold text-xs transition"
+                  >
+                    {copiedKey === 'slides' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 inline" /> Copiado
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 inline" /> Copiar Slides
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const fullProposal = `PROPUESTA COMERCIAL - ${lead.displayName}\n\n${propuestaData.notebookPrompt}`;
+                      navigator.clipboard.writeText(fullProposal);
+                      setCopiedKey('full');
+                      setTimeout(() => setCopiedKey(null), 2500);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 font-bold text-xs transition"
+                  >
+                    {copiedKey === 'full' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 inline" /> Copiado
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-3.5 h-3.5 inline" /> Copiar Todo
+                      </>
+                    )}
+                  </button>
+                  <a
+                    href={`https://wa.me/${(lead.internationalPhoneNumber || lead.nationalPhoneNumber).replace(/\D/g, '')}?text=${encodeURIComponent(propuestaData.slides[6]?.content || '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 font-bold text-xs transition flex items-center gap-1.5"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Enviar WhatsApp</span>
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

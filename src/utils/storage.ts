@@ -2,7 +2,8 @@ import { AppSettings, BusinessLead, SearchCacheItem } from '@/types';
 
 export const DEFAULT_SETTINGS: AppSettings = {
   googleMapsApiKey: '',
-  geminiApiKey: '',
+  nvidiaApiKey: '',
+  openRouterApiKey: '',
   placesCallsThisMonth: 0,
   placesQuotaLimit: 800,
   defaultRegion: 'DO',

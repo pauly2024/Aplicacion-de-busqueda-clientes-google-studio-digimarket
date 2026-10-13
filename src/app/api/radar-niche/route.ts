@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { NicheScanResult } from '@/types';
 
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+const rankingSchema = {
+  name: 'niche_ranking',
+  strict: true,
+  schema: {
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        category: { type: 'string' },
+        rank: { type: 'integer', minimum: 1 },
+        recommended: { type: 'boolean' },
+        reason: { type: 'string' },
+        serviceToSell: { type: 'string' },
+      },
+      required: ['category', 'rank', 'recommended', 'reason', 'serviceToSell'],
+      additionalProperties: false,
+    },
+    minItems: 1,
+    maxItems: 20,
+  },
+};
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -10,9 +35,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Faltan parámetros requeridos' }, { status: 400 });
     }
 
-    const apiKey = clientKey || process.env.GEMINI_API_KEY;
+    const apiKey = clientKey || OPENROUTER_API_KEY;
 
-    // Si tenemos clave de Gemini, le pedimos un análisis estratégico y ranking
+    // Si tenemos clave de OpenRouter, le pedimos un análisis estratégico y ranking
     if (apiKey) {
       try {
         const prompt = `Actúa como estratega de negocios y prospección B2B para una agencia digital (DigiMarket RD).
@@ -39,34 +64,42 @@ Responde ÚNICAMENTE un array JSON válido con este formato:
   ...
 ]`;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
-        const res = await fetch(geminiUrl, {
+        const res = await fetch(OPENROUTER_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': 'https://radar-leads.vercel.app',
+            'X-Title': 'Radar Leads - DigiMarket RD',
+          },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              response_mime_type: 'application/json',
-              temperature: 0.2,
+            model: 'openrouter/free',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.2,
+            response_format: {
+              type: 'json_schema',
+              json_schema: rankingSchema,
             },
           }),
         });
 
         if (res.ok) {
           const data = await res.json();
-          const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          const raw = data?.choices?.[0]?.message?.content;
           if (raw) {
             const parsed = JSON.parse(raw);
-            return NextResponse.json({ rankings: parsed });
+            return NextResponse.json({ rankings: parsed, model: data.model });
           }
+        } else {
+          const errData = await res.json();
+          console.warn('Error en llamada OpenRouter para nichos:', errData);
         }
       } catch (e) {
-        console.warn('Error en llamada Gemini para nichos:', e);
+        console.warn('Error en llamada OpenRouter para nichos:', e);
       }
     }
 
-    // Respaldo heurístico si no hay Gemini o falla
+    // Respaldo heurístico si no hay OpenRouter o falla
     // Ordenamos por oportunidad ponderada: (% sin web * 0.6) + (media reseñas * 0.4)
     const sorted = [...scanResults].sort((a: NicheScanResult, b: NicheScanResult) => {
       const scoreA = a.withoutOwnWebPercent * 1.5 + Math.min(50, a.averageReviews);
