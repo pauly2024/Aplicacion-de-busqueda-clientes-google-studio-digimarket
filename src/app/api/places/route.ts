@@ -2,6 +2,142 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const GEOAPIFY_API_KEY = 'a8b11066ecdd44c59d834fef15280d99';
 
+// Mapeo de términos de búsqueda a categorías de Geoapify
+const QUERY_TO_CATEGORIES: Record<string, string[]> = {
+  // Salud
+  'clínica': ['healthcare'],
+  'clínicas': ['healthcare'],
+  'dental': ['healthcare.dentist'],
+  'dentista': ['healthcare.dentist'],
+  'dentistas': ['healthcare.dentist'],
+  'hospital': ['healthcare.hospital'],
+  'hospitales': ['healthcare.hospital'],
+  'farmacia': ['healthcare.pharmacy'],
+  'farmacias': ['healthcare.pharmacy'],
+  'laboratorio': ['healthcare'],
+  'laboratorios': ['healthcare'],
+  'fisioterapia': ['healthcare.physiotherapist'],
+  'fisioterapeuta': ['healthcare.physiotherapist'],
+  'fisioterapeutas': ['healthcare.physiotherapist'],
+  'clínica': ['healthcare'],
+  'clínicas': ['healthcare'],
+  'médico': ['healthcare'],
+  'médicos': ['healthcare'],
+  'doctor': ['healthcare'],
+  'doctores': ['healthcare'],
+  'salud': ['healthcare'],
+
+  // Comida
+  'restaurante': ['catering.restaurant'],
+  'restaurantes': ['catering.restaurant'],
+  'comida': ['catering.restaurant'],
+  'pizza': ['catering.restaurant'],
+  'hamburguesa': ['catering.fast_food'],
+  'hamburguesas': ['catering.fast_food'],
+  'café': ['catering.cafe'],
+  'cafe': ['catering.cafe'],
+  'cafetería': ['catering.cafe'],
+  'cafeteria': ['catering.cafe'],
+  'bar': ['catering.bar'],
+  'bars': ['catering.bar'],
+
+  // Servicios personales
+  'peluquería': ['service.hairdresser'],
+  'peluquería': ['service.hairdresser'],
+  'peluquerías': ['service.hairdresser'],
+  'barbería': ['service.barber'],
+  'barberia': ['service.barber'],
+  'barberías': ['service.barber'],
+  'barberias': ['service.barber'],
+  'estética': ['service.beauty'],
+  'estetica': ['service.beauty'],
+  'estéticas': ['service.beauty'],
+  'esteticas': ['service.beauty'],
+  'belleza': ['service.beauty'],
+  'spa': ['service.spa'],
+  'masaje': ['service.massage'],
+  'masajes': ['service.massage'],
+
+  // Automotriz
+  'taller': ['service.car_repair'],
+  'talleres': ['service.car_repair'],
+  'mecánico': ['service.car_repair'],
+  'mecanico': ['service.car_repair'],
+  'mecánicos': ['service.car_repair'],
+  'mecanicos': ['service.car_repair'],
+  'mecánica': ['service.car_repair'],
+  'mecanica': ['service.car_repair'],
+  'automóvil': ['service.car_repair'],
+  'automovil': ['service.car_repair'],
+  'coche': ['service.car_repair'],
+  'carro': ['service.car_repair'],
+  'neumáticos': ['service.tyre'],
+  'neumáticos': ['service.tyre'],
+
+  // Hogar/Construcción
+  'construcción': ['construction'],
+  'construccion': ['construction'],
+  'reformas': ['construction.renovation'],
+  'plomero': ['service.plumber'],
+  'plomeros': ['service.plumber'],
+  'electricista': ['service.electrician'],
+  'electricistas': ['service.electrician'],
+  'pintor': ['service.painter'],
+  'pintores': ['service.painter'],
+  'cerrajero': ['service.locksmith'],
+  'cerrajeros': ['service.locksmith'],
+
+  // Profesionales
+  'abogado': ['service.lawyer'],
+  'abogados': ['service.lawyer'],
+  'contador': ['service.accountant'],
+  'contadores': ['service.accountant'],
+  'arquitecto': ['service.architect'],
+  'arquitectos': ['service.architect'],
+  'ingeniero': ['service.engineer'],
+  'ingenieros': ['service.engineer'],
+  'inmobiliaria': ['service.real_estate'],
+  'inmobiliarias': ['service.real_estate'],
+
+  // Educación
+  'academia': ['education'],
+  'academias': ['education'],
+  'escuela': ['education.school'],
+  'escuelas': ['education.school'],
+  'colegio': ['education.school'],
+  'colegios': ['education.school'],
+  'universidad': ['education.university'],
+  'universidades': ['education.university'],
+
+  // Deportes/Fitness
+  'gimnasio': ['sport.fitness_center'],
+  'gimnasios': ['sport.fitness_center'],
+  'gym': ['sport.fitness_center'],
+  'fitness': ['sport.fitness_center'],
+
+  // Compras
+  'supermercado': ['commercial.supermarket'],
+  'supermercados': ['commercial.supermarket'],
+  'tienda': ['commercial'],
+  'tiendas': ['commercial'],
+  'centro comercial': ['commercial.shopping_mall'],
+  'centro comercial': ['commercial.shopping_mall'],
+};
+
+function getCategoriesForQuery(query: string): string[] {
+  const lowerQuery = query.toLowerCase();
+  
+  // Buscar coincidencias exactas primero
+  for (const [key, categories] of Object.entries(QUERY_TO_CATEGORIES)) {
+    if (lowerQuery.includes(key)) {
+      return categories;
+    }
+  }
+  
+  // Categorías por defecto para búsquedas genéricas
+  return ['commercial', 'service', 'healthcare', 'catering', 'education', 'sport'];
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -11,14 +147,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Debes proporcionar una consulta de búsqueda' }, { status: 400 });
     }
 
-    // Geoapify Places API
+    const categories = getCategoriesForQuery(query).join(',');
+    
+    // Coordenadas centro Puerto Plata para filtrar por radio
+    const lat = 19.79;
+    const lon = -70.69;
+    const radius = 15000; // 15km
+
     const geoapifyUrl = 'https://api.geoapify.com/v2/places';
     const params = new URLSearchParams({
-      text: query,
-      apiKey: GEOAPIFY_API_KEY,
+      categories,
+      filter: `circle:${lon},${lat},${radius}`,
       limit: '20',
       lang: languageCode || 'es',
-      filter: regionCode ? `countrycode:${regionCode.toLowerCase()}` : '',
+      apiKey: GEOAPIFY_API_KEY,
     });
 
     const res = await fetch(`${geoapifyUrl}?${params}`, {
@@ -28,7 +170,9 @@ export async function POST(req: NextRequest) {
     });
 
     if (!res.ok) {
-      return NextResponse.json({ error: `Error ${res.status} en Geoapify` }, { status: res.status });
+      const errorText = await res.text();
+      console.error('Geoapify error:', res.status, errorText);
+      return NextResponse.json({ error: `Error ${res.status} en Geoapify: ${errorText}` }, { status: res.status });
     }
 
     const data = await res.json();
