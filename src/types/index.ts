@@ -41,6 +41,9 @@ export interface BusinessAnalysis {
   recommendedService: {
     service: string;
     reason: string;
+    services?: string[];
+    priceRange?: string;
+    isPackage?: boolean;
   };
   drafts: {
     phoneScript: string;
@@ -70,6 +73,7 @@ export interface BusinessLead {
   status: LeadStatus;
   notes?: string;
   nextActionDate?: string;
+  siteUrl?: string;
   analysis?: BusinessAnalysis | null;
   createdAt: string;
   updatedAt: string;
@@ -87,7 +91,8 @@ export interface SellerProfile {
 
 export interface AppSettings {
   googleMapsApiKey: string;
-  geminiApiKey: string;
+  nvidiaApiKey: string;
+  openRouterApiKey: string;
   placesCallsThisMonth: number;
   placesQuotaLimit: number;
   defaultRegion: string;

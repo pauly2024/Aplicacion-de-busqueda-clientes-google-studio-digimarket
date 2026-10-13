@@ -25,6 +25,11 @@ import {
   CheckCircle,
   XCircle,
   FileText,
+  Send,
+  Zap,
+  Globe2,
+  Rocket,
+  Wifi,
 } from 'lucide-react';
 import { AppSettings, BusinessLead, LeadStatus } from '@/types';
 import { calculateOpportunityScore } from '@/utils/opportunity';
@@ -48,6 +53,9 @@ export function BusinessModal({
   const [error, setError] = useState<string | null>(null);
   const [activeDraftTab, setActiveDraftTab] = useState<'whatsapp' | 'phone' | 'email'>('whatsapp');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [creatingWebAndCRM, setCreatingWebAndCRM] = useState(false);
+  const [createWebError, setCreateWebError] = useState<string | null>(null);
+  const [createdSiteUrl, setCreatedSiteUrl] = useState<string | null>(null);
 
   // Notas y próxima acción editables
   const [notes, setNotes] = useState(lead.notes || '');
@@ -77,7 +85,7 @@ export function BusinessModal({
     setTimeout(() => setCopiedKey(null), 2500);
   };
 
-  // Ejecuta la auditoría completa (PageSpeed + Gemini)
+  // Ejecuta la auditoría completa (PageSpeed + NVIDIA NIM)
   const handleAnalyze = async () => {
     setAnalyzing(true);
     setError(null);
@@ -104,7 +112,7 @@ export function BusinessModal({
         }
       }
 
-      // Llamamos al análisis de Gemini Flash + Scraper
+      // Llamamos al análisis con NVIDIA NIM + Scraper
       const aiRes = await fetch('/api/analyze-web', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +128,7 @@ export function BusinessModal({
             ...settings.sellerProfile,
             tone: selectedTone,
           },
-          apiKey: settings.geminiApiKey || undefined,
+          apiKey: settings.nvidiaApiKey || undefined,
           pageSpeedScores: pageSpeedData,
         }),
       });
@@ -182,7 +190,7 @@ export function BusinessModal({
             ...settings.sellerProfile,
             tone: selectedTone,
           },
-          apiKey: settings.geminiApiKey || undefined,
+          apiKey: settings.nvidiaApiKey || undefined,
           pageSpeedScores: lead.analysis?.pageSpeed,
         }),
       });
@@ -205,6 +213,119 @@ export function BusinessModal({
       console.error('Error regenerando borradores:', e);
     } finally {
       setRegeneratingDrafts(false);
+    }
+  };
+
+  // Crear Web en Caso 2 + Activar CRM en Caso 3
+  const handleCreateWebAndCRM = async () => {
+    if (!lead.analysis?.recommendedService) {
+      setCreateWebError('Primero analiza la web para obtener el paquete recomendado');
+      return;
+    }
+
+    setCreatingWebAndCRM(true);
+    setCreateWebError(null);
+    setCreatedSiteUrl(null);
+
+    try {
+      const packageInfo = lead.analysis.recommendedService;
+      const servicesCount = packageInfo.services?.length ?? 0;
+      const packageType = servicesCount > 2 ? 'premium'
+        : servicesCount > 1 ? 'pro' : 'basico';
+
+      // URLs desde variables de entorno (configurar en Vercel Dashboard)
+      const caso2Url = process.env.NEXT_PUBLIC_CASO2_API_URL || 'https://caso2-web-taller.pages.dev';
+      const caso3Url = process.env.NEXT_PUBLIC_CASO3_API_URL || 'https://caso3-crm-whatsapp.vercel.app';
+
+      // 1. Generar sitio en Caso 2 (Astro + Cloudflare Pages)
+      console.log('[Crear Web] Paso 1: Generando configuración del sitio...');
+      const genRes = await fetch(`${caso2Url}/api/web/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadData: {
+            id: lead.id,
+            nombre: lead.displayName,
+            direccion: lead.formattedAddress,
+            telefono: lead.internationalPhoneNumber || lead.nationalPhoneNumber,
+            email: lead.analysis?.emails?.[0],
+            servicios: lead.analysis?.recommendedService?.services,
+            whatsapp: lead.internationalPhoneNumber || lead.nationalPhoneNumber,
+          },
+          packageType,
+          packagePrice: packageInfo.priceRange,
+        }),
+      });
+
+      if (!genRes.ok) {
+        const err = await genRes.json();
+        throw new Error(`Error generando sitio: ${err.error || genRes.statusText}`);
+      }
+
+      const genData = await genRes.json();
+      console.log('[Crear Web] Configuración generada:', genData.config);
+
+      // 2. Deploy en Cloudflare Pages
+      console.log('[Crear Web] Paso 2: Desplegando en Cloudflare Pages...');
+      const deployRes = await fetch(`${caso2Url}/api/web/deploy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: genData.config }),
+      });
+
+      if (!deployRes.ok) {
+        const err = await deployRes.json();
+        throw new Error(`Error en deploy: ${err.error || deployRes.statusText}`);
+      }
+
+      const deployData = await deployRes.json();
+      const siteUrl = deployData.siteUrl;
+      console.log('[Crear Web] Sitio desplegado:', siteUrl);
+      setCreatedSiteUrl(siteUrl);
+
+      // 3. Importar lead en Caso 3 (CRM WhatsApp)
+      console.log('[Crear Web] Paso 3: Importando lead al CRM WhatsApp...');
+      const crmRes = await fetch(`${caso3Url}/api/crm/leads/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: lead.id,
+          displayName: lead.displayName,
+          formattedAddress: lead.formattedAddress,
+          phoneNumber: lead.internationalPhoneNumber || lead.nationalPhoneNumber,
+          email: lead.analysis?.emails?.[0],
+          website: siteUrl,
+          opportunityScore: lead.opportunityScore,
+          packageType,
+          packagePrice: packageInfo.priceRange,
+          siteUrl,
+        }),
+      });
+
+      if (!crmRes.ok) {
+        const err = await crmRes.json();
+        throw new Error(`Error importando a CRM: ${err.error || crmRes.statusText}`);
+      }
+
+      const crmData = await crmRes.json();
+      console.log('[Crear Web] Lead importado a CRM:', crmData);
+
+      // Actualizar lead local con el estado y URL del sitio
+      const updatedLead: BusinessLead = {
+        ...lead,
+        status: 'Contactado',
+        siteUrl,
+        notes: `${notes}\n\n[Auto] Web creada: ${siteUrl} | CRM activado: ${new Date().toLocaleString()}`,
+        updatedAt: new Date().toISOString(),
+      };
+      onUpdateLead(updatedLead);
+
+      alert(`✅ ¡Completado!\n\n🌐 Sitio web: ${siteUrl}\n📱 CRM WhatsApp: Lead importado y conversación creada\n📦 Paquete: ${packageInfo.service}\n\nEl CRM enviará el primer mensaje por WhatsApp automáticamente.`);
+    } catch (err: any) {
+      console.error('[Crear Web] Error:', err);
+      setCreateWebError(err.message || 'Error inesperado al crear web y activar CRM');
+    } finally {
+      setCreatingWebAndCRM(false);
     }
   };
 
@@ -303,6 +424,60 @@ export function BusinessModal({
                   <span>Ver en Maps</span>
                 </a>
               )}
+
+              {/* Botón PRINCIPAL: Crear Web + Activar CRM (Caso 2 + 3) */}
+              {lead.analysis?.recommendedService && !creatingWebAndCRM && (
+                <button
+                  onClick={handleCreateWebAndCRM}
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-500 hover:from-orange-600 hover:via-amber-600 hover:to-emerald-600 text-black font-extrabold text-xs transition shadow-lg shadow-orange-500/40 animate-pulse"
+                  title="Generar sitio web según paquete + Activar CRM WhatsApp automáticamente"
+                >
+                  <Rocket className="w-4 h-4" />
+                  <span>Crear Web + Activar CRM</span>
+                  <Globe2 className="w-4 h-4" />
+                </button>
+              )}
+
+              {/* Loading state */}
+              {creatingWebAndCRM && (
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500/50 via-amber-500/50 to-emerald-500/50 text-black font-bold text-xs">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generando web y activando CRM...</span>
+                </div>
+              )}
+
+              {/* Error state */}
+              {createWebError && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>{createWebError}</span>
+                </div>
+              )}
+
+              {/* Success state with link */}
+              {createdSiteUrl && !creatingWebAndCRM && (
+                <a
+                  href={createdSiteUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold text-xs transition hover:bg-emerald-500/30"
+                >
+                  <Wifi className="w-3.5 h-3.5" />
+                  <span>Ver Sitio: {createdSiteUrl.replace('https://', '')}</span>
+                </a>
+              )}
+
+              {/* Botón SECUNDARIO: Solo CRM WhatsApp (Caso 3) */}
+              <button
+                onClick={handleCreateWebAndCRM}
+                disabled={creatingWebAndCRM}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-black font-extrabold text-xs transition shadow-lg shadow-emerald-500/30 opacity-70 hover:opacity-100"
+                title="Solo enviar al CRM WhatsApp sin crear web"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Solo CRM WhatsApp</span>
+                <Zap className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {/* Score pill */}
@@ -322,18 +497,18 @@ export function BusinessModal({
             </div>
           </div>
 
-          {/* Section: Auditoría Web & Gemini */}
-          <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-orange-400" />
-                  <span>Auditoría Técnica y Diagnóstico de IA</span>
-                </h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  Análisis con Google PageSpeed Insights (móvil) y Gemini Flash para detectar cuellos de botella.
-                </p>
-              </div>
+{/* Section: Auditoría Web & NVIDIA NIM */}
+           <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+             <div className="flex items-center justify-between">
+               <div>
+                 <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                   <Sparkles className="w-4 h-4 text-orange-400" />
+                   <span>Auditoría Técnica y Diagnóstico de IA</span>
+                 </h3>
+                 <p className="text-[11px] text-slate-400 mt-0.5">
+                   Análisis con Google PageSpeed Insights (móvil) y NVIDIA NIM (Llama 3.1) para detectar cuellos de botella.
+                 </p>
+               </div>
 
               <button
                 onClick={handleAnalyze}
@@ -503,24 +678,43 @@ export function BusinessModal({
                   </div>
                 )}
 
-                {/* Servicio Recomendado a Ofrecer */}
+                {/* Servicio/Paquete Recomendado a Ofrecer */}
                 {analysis.recommendedService && (
                   <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-transparent border border-orange-500/30">
                     <div className="text-[10px] uppercase font-black text-orange-400 tracking-wider">
-                      Servicio Recomendado de DigiMarket RD
+                      {analysis.recommendedService.isPackage ? 'Paquete Recomendado de DigiMarket RD' : 'Servicio Recomendado de DigiMarket RD'}
                     </div>
                     <div className="text-sm font-black text-white mt-0.5">
                       {analysis.recommendedService.service}
                     </div>
+                    {analysis.recommendedService.priceRange && (
+                      <div className="text-xs font-bold text-amber-400 mt-1">
+                        {analysis.recommendedService.priceRange}
+                      </div>
+                    )}
                     <p className="text-slate-300 mt-1.5 leading-relaxed">
                       {analysis.recommendedService.reason}
                     </p>
+                    {analysis.recommendedService.services && analysis.recommendedService.services.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-orange-500/20">
+                        <div className="text-[10px] uppercase font-bold text-orange-400 tracking-wider mb-2">
+                          Servicios Incluidos:
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {analysis.recommendedService.services.map((s, i) => (
+                            <span key={i} className="px-2 py-1 text-[10px] font-semibold bg-orange-500/20 text-orange-300 border border-orange-500/30 rounded-lg">
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             ) : (
               <div className="py-8 text-center text-slate-500">
-                Pulsa «Analizar Web con IA» para obtener las notas de PageSpeed, la captura de pantalla y el diagnóstico comercial de Gemini.
+                Pulsa «Analizar Web con IA» para obtener las notas de PageSpeed, la captura de pantalla y el diagnóstico comercial con NVIDIA NIM.
               </div>
             )}
           </div>
