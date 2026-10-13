@@ -19,8 +19,6 @@ const QUERY_TO_CATEGORIES: Record<string, string[]> = {
   'fisioterapia': ['healthcare.physiotherapist'],
   'fisioterapeuta': ['healthcare.physiotherapist'],
   'fisioterapeutas': ['healthcare.physiotherapist'],
-  'clínica': ['healthcare'],
-  'clínicas': ['healthcare'],
   'médico': ['healthcare'],
   'médicos': ['healthcare'],
   'doctor': ['healthcare'],
@@ -42,7 +40,6 @@ const QUERY_TO_CATEGORIES: Record<string, string[]> = {
   'bars': ['catering.bar'],
 
   // Servicios personales
-  'peluquería': ['service.hairdresser'],
   'peluquería': ['service.hairdresser'],
   'peluquerías': ['service.hairdresser'],
   'barbería': ['service.barber'],
@@ -71,7 +68,6 @@ const QUERY_TO_CATEGORIES: Record<string, string[]> = {
   'automovil': ['service.car_repair'],
   'coche': ['service.car_repair'],
   'carro': ['service.car_repair'],
-  'neumáticos': ['service.tyre'],
   'neumáticos': ['service.tyre'],
 
   // Hogar/Construcción
@@ -120,7 +116,6 @@ const QUERY_TO_CATEGORIES: Record<string, string[]> = {
   'supermercados': ['commercial.supermarket'],
   'tienda': ['commercial'],
   'tiendas': ['commercial'],
-  'centro comercial': ['commercial.shopping_mall'],
   'centro comercial': ['commercial.shopping_mall'],
 };
 
