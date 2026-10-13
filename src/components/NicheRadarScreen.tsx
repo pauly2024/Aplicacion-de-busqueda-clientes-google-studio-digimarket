@@ -20,7 +20,7 @@ import {
   Copy,
   FileText,
 } from 'lucide-react';
-import { AppSettings, NicheScanResult, PresentationPrompt } from '@/types';
+import { AppSettings, NicheScanResult, PresentationPrompt, ServiceOffered } from '@/types';
 import { checkHasOwnWebsite } from '@/utils/opportunity';
 import { Storage } from '@/utils/storage';
 
@@ -86,7 +86,7 @@ export function NicheRadarScreen({
       .replace(/\{\{sellerProfile\.servicesOffered\}\}/g, services)
       .replace(/\{\{sellerProfile\.tone\}\}/g, seller.tone || '')
       .replace(/\{\{#each sellerProfile\.servicesOffered\}\}([\s\S]*?)\{\{\/each\}\}/g, (_, content) => {
-        return (seller.servicesOffered || []).map((s: string) => content.replace(/\{\{this\}\}/g, s)).join('\n');
+        return (seller.servicesOffered || []).map((s: ServiceOffered) => content.replace(/\{\{this\}\}/g, `${s.name} - RD$ ${s.price}`)).join('\n');
       })
       .replace(/\{\{#if hasOwnWebsite\}\}([\s\S]*?)\{\{else\}\}([\s\S]*?)\{\{\/if\}\}/g, (_, ifTrue, ifFalse) => {
         return business.hasOwnWebsite ? ifTrue : ifFalse;

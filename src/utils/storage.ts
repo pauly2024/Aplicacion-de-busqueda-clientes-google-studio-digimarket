@@ -15,10 +15,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
     valueProposition:
       'Ayudamos a negocios locales de Puerto Plata, Sosúa, Cabarete y Santiago a multiplicar sus clientes con páginas web modernas y agentes de IA por WhatsApp que responden en segundos.',
     servicesOffered: [
-      'Páginas Web Modernas y Rápidas',
-      'Agente de IA para WhatsApp 24/7',
-      'Sistema de Citas y Reservas Online',
-      'Posicionamiento y Optimización Local',
+      { name: 'Páginas Web Modernas y Rápidas', price: 35000 },
+      { name: 'Agente de IA para WhatsApp 24/7', price: 25000 },
+      { name: 'Sistema de Citas y Reservas Online', price: 15000 },
+      { name: 'Posicionamiento y Optimización Local (SEO)', price: 20000 },
     ],
     tone: 'consultivo',
   },
@@ -101,7 +101,7 @@ Estilo: Moderno, limpio, con animaciones de texto
 
 ### Slide 4: Nuestra Solución
 {{#each sellerProfile.servicesOffered}}
-✅ {{this}}
+✅ {{this.name}} - RD$ {{this.price}}
 {{/each}}
 
 ### Slide 5: Casos de Éxito / Metodología

@@ -2,23 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const GEOAPIFY_API_KEY = 'a8b11066ecdd44c59d834fef15280d99';
 
-// Mapeo de términos de búsqueda a categorías de Geoapify
+// Mapeo de términos de búsqueda a categorías de Geoapify (solo categorías válidas)
 const QUERY_TO_CATEGORIES: Record<string, string[]> = {
-  // Salud
+  // Salud - usar healthcare general o subcategorías válidas
   'clínica': ['healthcare'],
   'clínicas': ['healthcare'],
-  'dental': ['healthcare.dentist'],
-  'dentista': ['healthcare.dentist'],
-  'dentistas': ['healthcare.dentist'],
+  'dental': ['healthcare'],
+  'dentista': ['healthcare'],
+  'dentistas': ['healthcare'],
   'hospital': ['healthcare.hospital'],
   'hospitales': ['healthcare.hospital'],
   'farmacia': ['healthcare.pharmacy'],
   'farmacias': ['healthcare.pharmacy'],
   'laboratorio': ['healthcare'],
   'laboratorios': ['healthcare'],
-  'fisioterapia': ['healthcare.physiotherapist'],
-  'fisioterapeuta': ['healthcare.physiotherapist'],
-  'fisioterapeutas': ['healthcare.physiotherapist'],
+  'fisioterapia': ['healthcare'],
+  'fisioterapeuta': ['healthcare'],
+  'fisioterapeutas': ['healthcare'],
   'médico': ['healthcare'],
   'médicos': ['healthcare'],
   'doctor': ['healthcare'],

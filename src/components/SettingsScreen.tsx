@@ -284,27 +284,73 @@ export function SettingsScreen({ settings, onSaveSettings }: SettingsScreenProps
 
             <div className="sm:col-span-2">
               <label className="block text-slate-300 font-bold mb-1">
-                Servicios que Ofreces (uno por línea)
+                Servicios que Ofreces (nombre y precio RD$)
               </label>
-              <textarea
-                rows={5}
-                value={(formData.sellerProfile.servicesOffered || []).join('\n')}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    sellerProfile: {
-                      ...formData.sellerProfile,
-                      servicesOffered: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean),
-                    },
-                  })
-                }
-                placeholder="Páginas Web Modernas y Rápidas
-Agente de IA para WhatsApp 24/7
-Sistema de Citas y Reservas Online
-Posicionamiento y Optimización Local"
-                className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white resize-none focus:outline-none focus:border-orange-500 font-mono text-xs"
-              />
-              <span className="text-[10px] text-slate-500 mt-1 block">Un servicio por línea. Se usan en los borradores y propuestas.</span>
+              <div className="space-y-2">
+                {formData.sellerProfile.servicesOffered.map((service, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={service.name}
+                      onChange={(e) => {
+                        const updated = [...formData.sellerProfile.servicesOffered];
+                        updated[index] = { ...updated[index], name: e.target.value };
+                        setFormData({
+                          ...formData,
+                          sellerProfile: { ...formData.sellerProfile, servicesOffered: updated },
+                        });
+                      }}
+                      placeholder="Nombre del servicio"
+                      className="flex-1 p-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500"
+                    />
+                    <input
+                      type="number"
+                      value={service.price}
+                      onChange={(e) => {
+                        const updated = [...formData.sellerProfile.servicesOffered];
+                        updated[index] = { ...updated[index], price: parseInt(e.target.value, 10) || 0 };
+                        setFormData({
+                          ...formData,
+                          sellerProfile: { ...formData.sellerProfile, servicesOffered: updated },
+                        });
+                      }}
+                      placeholder="Precio RD$"
+                      className="w-32 p-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-orange-500 text-right"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = formData.sellerProfile.servicesOffered.filter((_, i) => i !== index);
+                        setFormData({
+                          ...formData,
+                          sellerProfile: { ...formData.sellerProfile, servicesOffered: updated },
+                        });
+                      }}
+                      className="p-3 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 rounded-xl transition"
+                      title="Eliminar servicio"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData({
+                      ...formData,
+                      sellerProfile: {
+                        ...formData.sellerProfile,
+                        servicesOffered: [...formData.sellerProfile.servicesOffered, { name: '', price: 0 }],
+                      },
+                    });
+                  }}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Añadir Servicio</span>
+                </button>
+                <span className="text-[10px] text-slate-500 mt-1 block">Formato: Nombre del servicio + Precio en RD$</span>
+              </div>
             </div>
           </div>
         </div>

@@ -79,13 +79,18 @@ export interface BusinessLead {
   updatedAt: string;
 }
 
+export interface ServiceOffered {
+  name: string;
+  price: number;
+}
+
 export interface SellerProfile {
   name: string;
   companyName: string;
   phone: string;
   website: string;
   valueProposition: string;
-  servicesOffered: string[];
+  servicesOffered: ServiceOffered[];
   tone: 'cercano' | 'consultivo' | 'directo';
 }
 
