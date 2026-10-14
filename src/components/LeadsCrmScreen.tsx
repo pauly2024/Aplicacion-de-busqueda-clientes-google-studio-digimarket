@@ -391,12 +391,14 @@ export function LeadsCrmScreen({
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
+                          type="button"
                           onClick={() => onOpenLead(lead)}
                           className="px-3 py-1 rounded-lg bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-xs transition"
                         >
                           Ficha
                         </button>
                         <button
+                          type="button"
                           onClick={() => onDeleteLead(lead.id)}
                           className="p-1.5 text-slate-500 hover:text-rose-400 transition"
                         >

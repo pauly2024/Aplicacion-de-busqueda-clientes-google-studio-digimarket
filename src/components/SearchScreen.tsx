@@ -740,12 +740,13 @@ export function SearchScreen({
                     <span className="text-xs text-slate-500 italic">Sin teléfono</span>
                   )}
 
-                  <button
-                    onClick={() => onOpenLead(lead)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-xs transition-all"
-                  >
-                    <span>Ver Ficha</span>
-                  </button>
+<button
+                      type="button"
+                      onClick={() => onOpenLead(lead)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-xs transition-all"
+                    >
+                      <span>Ver Ficha</span>
+                    </button>
                 </div>
               </div>
             );
@@ -839,6 +840,7 @@ export function SearchScreen({
                     </td>
                     <td className="p-4 text-right">
                       <button
+                        type="button"
                         onClick={() => onOpenLead(lead)}
                         className="px-3 py-1 rounded-lg bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-xs transition"
                       >
