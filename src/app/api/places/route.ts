@@ -57,7 +57,6 @@ async function searchGeoapifyPlaces(
     limit: String(maxResults),
     lang: languageCode,
     bias: 'proximity:-70.69,19.79',
-    filter: `countrycode:${regionCode.toLowerCase()}`,
   });
 
   const res = await fetch(`${GEOAPIFY_PLACES_URL}?${params.toString()}`);
