@@ -1005,7 +1005,7 @@ export function BusinessModal({
             </div>
 
             {showPropuesta && propuestaData && (
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                 {/* Slides Preview */}
                 <div className="space-y-3">
                   <div className="text-xs font-bold text-slate-400">Diapositivas (8):</div>
