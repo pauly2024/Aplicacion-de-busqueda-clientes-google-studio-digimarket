@@ -40,12 +40,12 @@ const QUERY_TO_CATEGORIES: Record<string, string[]> = {
   'bars': ['catering.bar'],
 
   // Servicios personales
-  'peluquería': ['service.beauty'],
-  'peluquerías': ['service.beauty'],
-  'barbería': ['service.barber'],
-  'barberia': ['service.barber'],
-  'barberías': ['service.barber'],
-  'barberias': ['service.barber'],
+  'peluquería': ['service.beauty', 'service.hairdresser', 'service.barber'],
+  'peluquerías': ['service.beauty', 'service.hairdresser', 'service.barber'],
+  'barbería': ['service.barber', 'service.hairdresser'],
+  'barberia': ['service.barber', 'service.hairdresser'],
+  'barberías': ['service.barber', 'service.hairdresser'],
+  'barberias': ['service.barber', 'service.hairdresser'],
   'estética': ['service.beauty'],
   'estetica': ['service.beauty'],
   'estéticas': ['service.beauty'],

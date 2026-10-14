@@ -62,6 +62,21 @@ export function BusinessModal({
   } | null>(null);
   const [showPropuesta, setShowPropuesta] = useState(false);
 
+  // URL validation helper
+  const isValidUrl = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    try {
+      const u = new URL(url);
+      return u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  const safeWebsiteUri = isValidUrl(lead.websiteUri) ? lead.websiteUri : null;
+  const safeMapsUri = isValidUrl(lead.googleMapsUri) ? lead.googleMapsUri : null;
+  const safePhone = lead.nationalPhoneNumber ? `https://wa.me/${lead.nationalPhoneNumber.replace(/\D/g, '')}` : null;
+
   // Notas y próxima acción editables
   const [notes, setNotes] = useState(lead.notes || '');
   const [status, setStatus] = useState<LeadStatus>(lead.status || 'Nuevo');
@@ -451,27 +466,33 @@ export function BusinessModal({
               )}
 
               {lead.websiteUri ? (
-                <a
-                  href={lead.websiteUri}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30 font-bold transition"
-                >
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>Abrir Web</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                safeWebsiteUri ? (
+                  <a
+                    href={safeWebsiteUri}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/30 font-bold transition"
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>Abrir Web</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                ) : (
+                  <span className="px-3 py-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">
+                    Web no válida
+                  </span>
+                )
               ) : (
                 <span className="px-3 py-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">
                   Sin sitio web
                 </span>
               )}
 
-              {lead.googleMapsUri && (
+              {lead.googleMapsUri && safeMapsUri && (
                 <a
-                  href={lead.googleMapsUri}
+                  href={safeMapsUri}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white border border-slate-700 font-bold transition"
                 >
                   <MapPin className="w-3.5 h-3.5 text-orange-400" />
@@ -522,8 +543,8 @@ export function BusinessModal({
               )}
 
               {/* Botón SECUNDARIO: Solo CRM WhatsApp (Caso 3) */}
-              <button
-                onClick={handleCreateWebAndCRM}
+<button
+                onClick={() => handleCreateWebAndCRM}
                 disabled={creatingWebAndCRM}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-black font-extrabold text-xs transition shadow-lg shadow-emerald-500/30 opacity-70 hover:opacity-100"
                 title="Solo enviar al CRM WhatsApp sin crear web"
@@ -532,6 +553,18 @@ export function BusinessModal({
                 <span>Solo CRM WhatsApp</span>
                 <Zap className="w-3.5 h-3.5" />
               </button>
+
+              {safePhone && (
+                <a
+                  href={safePhone}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 font-bold text-xs transition"
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>WhatsApp</span>
+                </a>
+              )}
             </div>
 
             {/* Score pill */}
@@ -1076,15 +1109,17 @@ export function BusinessModal({
                       </>
                     )}
                   </button>
+                    {safePhone && (
                     <a
-                    href={`https://wa.me/${((lead.internationalPhoneNumber || lead.nationalPhoneNumber) || '').replace(/\D/g, '')}?text=${encodeURIComponent(slide6Content)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 font-bold text-xs transition flex items-center gap-1.5"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>Enviar WhatsApp</span>
-                  </a>
+                      href={`${safePhone}?text=${encodeURIComponent(slide6Content)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 font-bold text-xs transition flex items-center gap-1.5"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Enviar WhatsApp</span>
+                    </a>
+                  )}
                 </div>
               </div>
             )}
