@@ -54,10 +54,10 @@ async function searchGeoapifyPlaces(
   const params = new URLSearchParams({
     apiKey: GEOAPIFY_API_KEY,
     categories: category,
-    filter: `countrycode:${regionCode.toLowerCase()}`,
     limit: String(maxResults),
     lang: languageCode,
     bias: 'proximity:-70.69,19.79',
+    filter: `countrycode:${regionCode.toLowerCase()}`,
   });
 
   const res = await fetch(`${GEOAPIFY_PLACES_URL}?${params.toString()}`);
