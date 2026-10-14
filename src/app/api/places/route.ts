@@ -1,65 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_API_KEY;
+const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY || 'a8b11066ecdd44c59d834fef15280d99';
+const GEOAPIFY_PLACES_URL = 'https://api.geoapify.com/v2/places';
 
-// Google Places API (New) - Text Search
-// Docs: https://developers.google.com/maps/documentation/places/web-service/text-search
-const GOOGLE_PLACES_URL = 'https://places.googleapis.com/v1/places:searchText';
+const CATEGORY_MAP: Record<string, string> = {
+  'talleres': 'service.vehicle.repair',
+  'mecánicos': 'service.vehicle.repair',
+  'clínicas': 'healthcare',
+  'hospitales': 'healthcare.hospital',
+  'farmacias': 'healthcare.pharmacy',
+  'peluquerías': 'service.hairdresser',
+  'barberías': 'service.barber',
+  'belleza': 'service.beauty',
+  'restaurantes': 'catering.restaurant',
+  'comida rápida': 'catering.fast_food',
+  'cafés': 'catering.cafe',
+  'bares': 'catering.bar',
+  'inmobiliarias': 'service.real_estate',
+  'oficinas': 'office.company',
+  'construcción': 'construction',
+  'reformas': 'construction.renovation',
+  'fontaneros': 'service.plumber',
+  'electricistas': 'service.electrician',
+  'pintores': 'service.painter',
+  'cerrajeros': 'service.locksmith',
+  'abogados': 'service.lawyer',
+  'contadores': 'service.accountant',
+  'arquitectos': 'service.architect',
+  'ingenieros': 'service.engineer',
+  'colegios': 'education.school',
+  'universidades': 'education.university',
+  'gimnasios': 'sport.fitness_center',
+  'supermercados': 'commercial.supermarket',
+  'centros comerciales': 'commercial.shopping_mall',
+};
 
-// Campos que queremos recibir (optimiza costo y latencia)
-const FIELD_MASK = [
-  'places.id',
-  'places.displayName',
-  'places.formattedAddress',
-  'places.location',
-  'places.nationalPhoneNumber',
-  'places.internationalPhoneNumber',
-  'places.websiteUri',
-  'places.rating',
-  'places.userRatingCount',
-  'places.googleMapsUri',
-  'places.businessStatus',
-  'places.types',
-  'places.primaryTypeDisplayName',
-].join(',');
-
-async function searchGooglePlaces(query: string, regionCode: string = 'DO', languageCode: string = 'es', maxResults: number = 20): Promise<any[]> {
-  if (!GOOGLE_MAPS_API_KEY) {
-    throw new Error('GOOGLE_MAPS_API_KEY no configurada en variables de entorno');
+function getCategoryFromQuery(query: string): string {
+  const lower = query.toLowerCase();
+  for (const [keyword, category] of Object.entries(CATEGORY_MAP)) {
+    if (lower.includes(keyword)) return category;
   }
+  return 'commercial';
+}
 
-  const body = {
-    textQuery: query,
-    languageCode,
-    regionCode,
-    maxResultCount: maxResults,
-    // Opcional: bias por ubicación (centro Puerto Plata)
-    locationBias: {
-      circle: {
-        center: { latitude: 19.79, longitude: -70.69 },
-        radius: 25000.0, // 25km
-      },
-    },
-  };
-
-  const res = await fetch(GOOGLE_PLACES_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-      'X-Goog-FieldMask': FIELD_MASK,
-    },
-    body: JSON.stringify(body),
+async function searchGeoapifyPlaces(
+  query: string,
+  regionCode: string = 'DO',
+  languageCode: string = 'es',
+  maxResults: number = 20
+): Promise<any[]> {
+  const category = getCategoryFromQuery(query);
+  
+  const params = new URLSearchParams({
+    apiKey: GEOAPIFY_API_KEY,
+    categories: category,
+    filter: `countrycode:${regionCode.toLowerCase()}`,
+    limit: String(maxResults),
+    lang: languageCode,
+    bias: 'proximity:-70.69,19.79',
   });
 
+  const res = await fetch(`${GEOAPIFY_PLACES_URL}?${params.toString()}`);
+  
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
-    console.error('Google Places API error:', res.status, errorData);
-    throw new Error(`Google Places API: ${res.status} ${errorData.error?.message || res.statusText}`);
+    console.error('Geoapify API error:', res.status, errorData);
+    throw new Error(`Geoapify API: ${res.status} ${errorData.message || res.statusText}`);
   }
 
   const data = await res.json();
-  return data.places || [];
+  return data.features || [];
 }
 
 export async function POST(req: NextRequest) {
@@ -71,43 +81,45 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Debes proporcionar una consulta de búsqueda' }, { status: 400 });
     }
 
-    if (!GOOGLE_MAPS_API_KEY) {
+    if (!GEOAPIFY_API_KEY) {
       return NextResponse.json(
-        { error: 'API Key de Google Maps no configurada en el servidor' },
+        { error: 'API Key de Geoapify no configurada en el servidor' },
         { status: 500 }
       );
     }
 
-    const places = await searchGooglePlaces(query, regionCode, languageCode, 20);
+    const places = await searchGeoapifyPlaces(query, regionCode, languageCode, 20);
 
-    // Mapear resultados al formato que espera el frontend
-    const formattedPlaces = places.map((place: any) => ({
-      id: `google-${place.id || Math.random()}`,
-      displayName: { text: place.displayName?.text || 'Sin nombre' },
-      formattedAddress: place.formattedAddress || '',
-      location: {
-        latitude: place.location?.latitude,
-        longitude: place.location?.longitude,
-      },
-      nationalPhoneNumber: place.nationalPhoneNumber || null,
-      internationalPhoneNumber: place.internationalPhoneNumber || null,
-      websiteUri: place.websiteUri || null,
-      rating: place.rating || null,
-      userRatingCount: place.userRatingCount || null,
-      primaryTypeDisplayName: { text: place.primaryTypeDisplayName?.text || place.types?.[0] || 'Negocio' },
-      types: place.types || [],
-      googleMapsUri: place.googleMapsUri || `https://www.google.com/maps/place/?q=place_id:${place.id}`,
-      businessStatus: place.businessStatus || 'OPERATIONAL',
-    }));
+    const formattedPlaces = places.map((place: any) => {
+      const props = place.properties;
+      return {
+        id: `geoapify-${props.place_id || Math.random()}`,
+        displayName: { text: props.name || 'Sin nombre' },
+        formattedAddress: props.formatted || '',
+        location: {
+          latitude: props.lat,
+          longitude: props.lon,
+        },
+        nationalPhoneNumber: props.contact?.phone || null,
+        internationalPhoneNumber: props.contact?.phone || null,
+        websiteUri: props.website || null,
+        rating: props.rating || null,
+        userRatingCount: null,
+        primaryTypeDisplayName: { text: props.categories?.[0] || 'Negocio' },
+        types: props.categories || [],
+        googleMapsUri: props.datasource?.raw?.google_places?.url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(props.formatted || '')}`,
+        businessStatus: 'OPERATIONAL',
+      };
+    });
 
     return NextResponse.json({
       places: formattedPlaces,
-      nextPageToken: null, // Google Places New no usa pageToken en searchText
+      nextPageToken: null,
     });
   } catch (err: any) {
-    console.error('Error en /api/places (Google Places):', err);
+    console.error('Error en /api/places (Geoapify):', err);
     return NextResponse.json(
-      { error: err.message || 'Error inesperado al conectar con Google Places API' },
+      { error: err.message || 'Error inesperado al conectar con Geoapify API' },
       { status: 500 }
     );
   }
