@@ -742,8 +742,14 @@ export function SearchScreen({
 
 <button
                       type="button"
-                      onClick={() => onOpenLead(lead)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-xs transition-all"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('[SearchScreen] Ver Ficha clicked for lead:', lead.id, lead.displayName);
+                        onOpenLead(lead);
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-xs transition-all cursor-pointer"
+                      style={{ cursor: 'pointer' }}
                     >
                       <span>Ver Ficha</span>
                     </button>

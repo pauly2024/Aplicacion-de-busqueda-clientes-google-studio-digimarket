@@ -404,8 +404,7 @@ export function BusinessModal({
     return 'text-rose-400 bg-rose-500/10 border-rose-500/30';
   };
 
-  const pd = propuestaData!;
-  const slide6Content = (pd.slides[6] as { content?: string } | undefined)?.content || '';
+  const slide6Content = propuestaData?.slides?.[6]?.content || '';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
