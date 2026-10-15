@@ -555,49 +555,49 @@ REGLAS DE RESPUESTA:
       }
       packageName = packageServices.length === 3 ? 'Pack Digital Completo' : 'Pack Web + WhatsApp IA';
       packageReason = `Negocio con ${userRatingCount || 0}+ reseñas y ${rating || 'buena'}★ en Google pero SIN web propia. Cada día pierden clientes que buscan en móvil y no encuentran cómo contactar. El paquete incluye web rápida con WhatsApp integrado${packageServices.includes('Sistema de Citas y Reservas Online') ? ' + sistema de citas automático' : ''} para capturar el 100% de la demanda.`;
-      packagePriceRange = 'Desde 1.200€ pago único + 97€/mes (IA + hosting)';
+      packagePriceRange = 'RD$ 33,500 pago único (Web Básica RD$ 8,500 + IA WhatsApp RD$ 25,000)';
     } else if (needsWhatsApp && needsBooking && (needsSpeed || needsRedesign)) {
       // Web mala + sin WhatsApp + sin booking = rediseño completo
       packageServices = ['Rediseño Web Móvil Ultrarrápido (95+ PageSpeed)', 'Agente de IA para WhatsApp 24/7', 'Sistema de Citas y Reservas Online'];
       packageName = 'Pack Transformación Digital Completa';
       packageReason = `Tienen web pero pierde clientes por velocidad (${pageSpeedScores?.performance || 'baja'}/100), sin WhatsApp directo ni citas online. Reconstruimos la web optimizada para móvil + IA que responde y agenda 24/7 + calendario sincronizado.`;
-      packagePriceRange = 'Desde 1.800€ pago único + 147€/mes (IA + hosting + mantenimiento)';
+      packagePriceRange = 'RD$ 52,500 pago único (Web Emprendedor Plus RD$ 12,500 + IA WhatsApp RD$ 25,000 + Citas RD$ 15,000)';
     } else if (needsWhatsApp && needsBooking) {
       // Web decente pero sin WhatsApp ni booking
       packageServices = ['Agente de IA para WhatsApp 24/7', 'Sistema de Citas y Reservas Online', 'Botón WhatsApp + CTA flotante en web actual'];
       packageName = 'Pack Automatización WhatsApp + Citas';
       packageReason = `Su web funciona pero no convierte: faltan canal directo WhatsApp y citas online. Instalamos IA que atiende, califica y agenda en automático + botones de conversión en su web actual.`;
-      packagePriceRange = '497€ setup + 97€/mes (IA)';
+      packagePriceRange = 'RD$ 40,000 setup (IA WhatsApp RD$ 25,000 + Citas RD$ 15,000)';
     } else if (needsWhatsApp) {
       // Solo falta WhatsApp
       packageServices = ['Agente de IA para WhatsApp 24/7', 'Botón WhatsApp flotante en web'];
       packageName = 'Agente IA WhatsApp 24/7 + Botón Conversión';
       packageReason = `Reciben consultas por web pero no responden al instante. La IA atiende FAQ, cotiza y agenda citas 24/7 sin que pierdan ni un lead.`;
-      packagePriceRange = '297€ setup + 79€/mes';
+      packagePriceRange = 'RD$ 25,000 setup (IA WhatsApp 24/7)';
     } else if (needsBooking) {
       // Solo falta booking
       packageServices = ['Sistema de Citas y Reservas Online', 'Integración en web actual'];
       packageName = 'Sistema de Citas Online Automatizado';
       packageReason = `Clientes quieren reservar sin llamar. Sistema 24/7 sincronizado con su calendario, recordatorios automáticos y confirmación por WhatsApp.`;
-      packagePriceRange = '197€ setup + 39€/mes';
+      packagePriceRange = 'RD$ 15,000 setup (Sistema Citas Online)';
     } else if (needsSpeed || needsRedesign) {
       // Web lenta/desactualizada pero con WhatsApp y booking
       packageServices = ['Rediseño Web Móvil Ultrarrápido (95+ PageSpeed)', 'Optimización SEO Local'];
       packageName = 'Rediseño Web Performance + SEO Local';
       packageReason = `Web actual frena conversiones: velocidad ${pageSpeedScores?.performance || 'baja'}/100 y SEO ${pageSpeedScores?.seo || 'bajo'}/100. Reconstruimos solo lo técnico: Astro + Tailwind, 95+ PageSpeed, schema.org, Core Web Vitals verdes.`;
-      packagePriceRange = 'Desde 900€ pago único + 49€/mes (hosting + SEO)';
+      packagePriceRange = 'RD$ 15,000 pago único (Landing Page Básica)';
     } else if (needsSEO) {
       // Web OK pero SEO bajo
       packageServices = ['Posicionamiento y Optimización SEO Local', 'Ficha Google Business optimizada', 'Contenido geolocalizado mensual'];
       packageName = 'SEO Local Dominante';
       packageReason = `Web funcional pero invisible en búsquedas locales (SEO: ${pageSpeedScores?.seo}/100). Optimización técnica + contenido + ficha Google para aparecer en "cerca de mí" y mapas.`;
-      packagePriceRange = '397€ setup + 197€/mes';
+      packagePriceRange = 'RD$ 20,000 setup (SEO Local Dominante)';
     } else {
       // Todo bien - upsell mantenimiento/crecimiento
       packageServices = ['Mantenimiento Web Pro + Monitor IA', 'Campañas Google Ads Local'];
       packageName = 'Plan Crecimiento Continuo';
       packageReason = `Todo funcionando bien (${rating}★, ${userRatingCount} reseñas). El siguiente nivel: escalar leads con Ads geolocalizados + monitor IA que detecta oportunidades en tiempo real.`;
-      packagePriceRange = '297€/mes (gestión completa)';
+      packagePriceRange = 'RD$ 9,500/mes (Redes Emprendedor Mensual)';
     }
 
     const recommended = {

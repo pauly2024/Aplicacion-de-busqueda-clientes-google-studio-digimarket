@@ -109,7 +109,7 @@ Estilo: Moderno, limpio, con animaciones de texto
 - Metodología: Diagnóstico → Diseño → Lanzamiento → Optimización
 
 ### Slide 6: Inversión y Paquetes
-- Básico: $X | Pro: $Y | Premium: $Z
+- Básico: RD$ 33,500 | Pro: RD$ 52,500 | Premium: RD$ 78,000 | Enterprise: RD$ 85,000+
 - Incluye: Hosting, SSL, Dominio, Mantenimiento 3 meses
 
 ### Slide 7: Próximos Pasos
